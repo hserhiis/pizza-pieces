@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id Int @id @default(autoincrement())
+
+  fullName String?
+  email    String  @unique
+  password String?
+
+  cart  Cart?
+  order Order[]
+
+  provider   String?
+  providerId String?
+
+  verificationCode VerificationCode?
+  verifiedAt       DateTime?
+
+  role UserRole @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerId])
+}
+
+model Cart {
+  id Int @id @default(autoincrement())
+
+  token String @unique
+
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int?  @unique
+
+  cartItems CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id Int @id @default(autoincrement())
+
+  cart   Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId Int
+
+  productItem   ProductItem @relation(fields: [productItemId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productItemId Int
+
+  ingredients Ingredient[]
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id Int @id @default(autoincrement())
+
+  name     String
+  imageUrl String
+
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  categoryId Int
+
+  ingredients  Ingredient[]
+  productItems ProductItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id Int @id @default(autoincrement())
+
+  name     String    @unique
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Ingredient {
+  id Int @id @default(autoincrement())
+
+  name     String
+  price    Int
+  imageUrl String
+
+  products  Product[]
+  cartItems CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductItem {
+  id Int @id @default(autoincrement())
+
+  price Int
+  size  ProductSize?
+  type  ProductType?
+
+  isActive Boolean @default(true)
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productId Int
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, size, type])
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+
+  token     String  @unique
+  paymentId String?
+  total     Int
+  status    Status  @default(PENDING)
+
+  fullName String
+  email    String
+  phone    String
+  address  String
+  comment  String?
+
+  orderItems OrderItem[]
+
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  price    Int
+  name     String
+  quantity Int
+
+  ingredients OrderItemIngredient[]
+
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  orderId Int
+
+  productItem   ProductItem @relation(fields: [productItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  productItemId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+}
+
+model OrderItemIngredient {
+  id Int @id @default(autoincrement())
+
+  name  String
+  price Int
+
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  orderItemId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationCode {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
+
+  code String
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@unique([userId, code])
+}
+
+enum Status {
+  PENDING
+  PAID
+  CANCELLED
+  DELIVERING
+  COMPLETED
+}
+
+enum ProductSize {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum ProductType {
+  THIN
+  TRADITIONAL
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
