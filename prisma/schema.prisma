@@ -22,7 +22,7 @@ model User {
   providerId String?
 
   verificationCode VerificationCode?
-  verified         Boolean           @default(false)
+  verified         DateTime
 
   role UserRole @default(USER)
 
@@ -107,8 +107,8 @@ model ProductItem {
   id Int @id @default(autoincrement())
 
   price Int
-  size  ProductSize?
-  type  ProductType?
+  size  ProductSize? @default(MEDIUM)
+  type  ProductType? @default(TRADITIONAL)
 
   isActive Boolean @default(true)
 
