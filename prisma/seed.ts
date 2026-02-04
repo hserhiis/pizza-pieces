@@ -2,6 +2,13 @@ import { prisma } from './prisma-client';
 import * as bcrypt from 'bcryptjs';
 import { categories, ingredients, productItems, products } from './constants';
 
+const CLOUD_NAME = 'df54bqvpl';
+
+export const getTransparentUrl = (url: string) => {
+    const encodedUrl = encodeURIComponent(url);
+    return `https://res.cloudinary.com/${CLOUD_NAME}/image/fetch/e_make_transparent:10/f_png/${encodedUrl}`;
+};
+
 async function seed() {
     const password = await bcrypt.hash('12345', 10);
 
@@ -29,7 +36,11 @@ async function seed() {
     await prisma.category.createMany({ data: categories });
 
     // 4. Создание ингредиентов
-    await prisma.ingredient.createMany({ data: ingredients });
+    await prisma.ingredient.createMany(
+        {
+            data: ingredients.map((ing) => ({ ...ing, imageUrl: getTransparentUrl(ing.imageUrl) }))
+        }
+    );
 
     // Получаем созданные ингредиенты для работы со связями
     const dbIngredients = await prisma.ingredient.findMany();
@@ -37,12 +48,13 @@ async function seed() {
     // 5. Создание продуктов и их вариаций (ProductItems)
     for (let i = 0; i < products.length; i++) {
         const item = products[i];
-        const productVirtualId = i + 1; // productId в твоем массиве productItems
+        const productVirtualId = i + 1;
+        const imageUrl = getTransparentUrl(item.imageUrl);
 
         const product = await prisma.product.create({
             data: {
                 name: item.name,
-                imageUrl: item.imageUrl,
+                imageUrl: imageUrl,
                 categoryId: item.categoryId,
                 // Привязываем первые 5 ингредиентов для примера
                 ingredients: {
